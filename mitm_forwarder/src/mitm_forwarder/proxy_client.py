@@ -2,7 +2,7 @@
 
 import httpx
 import logging
-from typing import Optional, Dict, List, Any
+from typing import Any
 from datetime import datetime
 
 from .config import settings
@@ -12,17 +12,17 @@ logger = logging.getLogger(__name__)
 
 async def get_proxy(
     client: httpx.AsyncClient,
-    target_url: Optional[str] = None,
-    user_jwt: Optional[str] = None
-) -> Optional[Dict[str, Any]]:
+    target_url: str | None = None,
+    user_jwt: str | None = None,
+) -> dict[str, str | None] | None:
     """
     Get an upstream proxy from FastAPI backend.
-    
+
     Args:
         client: httpx async client
         target_url: Optional target URL for blacklist checking
         user_jwt: User JWT token from client Authorization header (required)
-        
+
     Returns:
         Dict with proxy info: {"proxy": str, "proxy_id": int, "user_id": int}
         Returns None if no proxy available or error occurred
@@ -30,38 +30,42 @@ async def get_proxy(
     if not user_jwt:
         logger.error("User JWT is required for proxy endpoint")
         return None
-    
+
     url = f"{settings.fastapi_base_url}{settings.fastapi_proxy_endpoint}"
     headers = {
         "Authorization": user_jwt  # Send user JWT in Authorization header
     }
-    
+
     params = {}
     if target_url:
         params["target_url"] = target_url
-    
+
     try:
-        response = await client.get(url, headers=headers, params=params, timeout=settings.httpx_timeout)
-        
+        response = await client.get(
+            url, headers=headers, params=params, timeout=settings.httpx_timeout
+        )
+
         if response.status_code == 200:
             data = response.json()
             # Map FastAPI response to expected format
             # FastAPI returns ProxyResponse with address field (ip:port)
-            proxy_address = data.get("address") or f"{data.get('ip')}:{data.get('port')}"
+            proxy_address = (
+                data.get("address") or f"{data.get('ip')}:{data.get('port')}"
+            )
             protocol = data.get("protocol", "http")
             username = data.get("username")
             password = data.get("password")
-            
+
             # Build full proxy URL with auth if available
             if username and password:
                 proxy_url = f"{protocol}://{username}:{password}@{proxy_address}"
             else:
                 proxy_url = f"{protocol}://{proxy_address}"
-            
+
             return {
                 "proxy": proxy_url,
                 "proxy_id": data.get("id"),
-                "user_id": None  # FastAPI doesn't return user_id in proxy response
+                "user_id": None,  # FastAPI doesn't return user_id in proxy response
             }
         elif response.status_code == 403:
             logger.warning(f"Request blacklisted: {target_url}")
@@ -70,9 +74,11 @@ async def get_proxy(
             logger.warning("No working proxies available")
             return None
         else:
-            logger.error(f"Unexpected status code from proxy endpoint: {response.status_code}")
+            logger.error(
+                f"Unexpected status code from proxy endpoint: {response.status_code}"
+            )
             return None
-    
+
     except httpx.TimeoutException:
         logger.error("Timeout while fetching proxy from FastAPI")
         return None
@@ -84,31 +90,33 @@ async def get_proxy(
         return None
 
 
-async def fetch_blacklist(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
+async def fetch_blacklist(client: httpx.AsyncClient) -> list[dict[str, Any]]:
     """
     Fetch blacklist rules from FastAPI backend.
-    
+
     Args:
         client: httpx async client
-        
+
     Returns:
         List of blacklist rules: [{"id": int, "pattern": str, ...}, ...]
         Returns empty list on error
     """
     url = f"{settings.fastapi_base_url}{settings.fastapi_blacklist_endpoint}"
-    headers = {
-        "Authorization": f"Bearer {settings.system_token}"
-    }
-    
+    headers = {"Authorization": f"Bearer {settings.system_token}"}
+
     try:
-        response = await client.get(url, headers=headers, timeout=settings.httpx_timeout)
-        
+        response = await client.get(
+            url, headers=headers, timeout=settings.httpx_timeout
+        )
+
         if response.status_code == 200:
             return response.json()
         else:
-            logger.error(f"Unexpected status code from blacklist endpoint: {response.status_code}")
+            logger.error(
+                f"Unexpected status code from blacklist endpoint: {response.status_code}"
+            )
             return []
-    
+
     except httpx.TimeoutException:
         logger.error("Timeout while fetching blacklist from FastAPI")
         return []
@@ -122,16 +130,16 @@ async def fetch_blacklist(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
 
 async def post_activity(
     client: httpx.AsyncClient,
-    user_id: Optional[int],
+    user_id: int | None,
     endpoint: str,
     method: str,
     status_code: int,
-    target_url: Optional[str] = None,
-    proxy_id: Optional[int] = None
+    target_url: str | None = None,
+    proxy_id: int | None = None,
 ) -> None:
     """
     Post activity log to FastAPI backend (fire-and-forget).
-    
+
     Args:
         client: httpx async client
         user_id: User ID (may be None)
@@ -144,9 +152,9 @@ async def post_activity(
     url = f"{settings.fastapi_base_url}{settings.fastapi_activity_endpoint}"
     headers = {
         "Authorization": f"Bearer {settings.system_token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
-    
+
     payload = {
         "user_id": user_id,
         "endpoint": endpoint,
@@ -154,18 +162,14 @@ async def post_activity(
         "status_code": status_code,
         "target_url": target_url or endpoint,
         "proxy_id": proxy_id,
-        "timestamp": datetime.utcnow().timestamp()
+        "timestamp": datetime.now().timestamp(),
     }
-    
+
     try:
         # Fire-and-forget: don't wait for response
-        await client.post(
-            url,
-            headers=headers,
-            json=payload,
-            timeout=settings.httpx_timeout
+        _ = await client.post(
+            url, headers=headers, json=payload, timeout=settings.httpx_timeout
         )
     except Exception as e:
         # Log but don't raise - activity logging should never block
         logger.debug(f"Failed to post activity log (non-critical): {e}")
-
