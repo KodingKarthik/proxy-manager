@@ -913,6 +913,7 @@ source = { editable = "proxy_manager" }
 dependencies = [
     { name = "apscheduler" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "pandas" },
     { name = "passlib", extra = ["bcrypt"] },
     { name = "python-jose", extra = ["cryptography"] },
@@ -925,6 +926,7 @@ dependencies = [
 requires-dist = [
     { name = "apscheduler", specifier = ">=3.11.1" },
     { name = "fastapi", specifier = ">=0.121.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.5.0" },
