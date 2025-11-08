@@ -9,13 +9,14 @@ from enum import Enum
 
 class UserRole(str, Enum):
     """User role enumeration."""
+
     ADMIN = "admin"
     USER = "user"
 
 
 class User(SQLModel, table=True):
     """User database model."""
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
     email: EmailStr = Field(unique=True, index=True)
@@ -23,10 +24,12 @@ class User(SQLModel, table=True):
     role: UserRole = Field(default=UserRole.USER)
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     # Relationships
     activity_logs: List["ActivityLog"] = Relationship(back_populates="user")
-    created_blacklists: List["Blacklist"] = Relationship(back_populates="created_by_user")
+    created_blacklists: List["Blacklist"] = Relationship(
+        back_populates="created_by_user"
+    )
 
 
 class Proxy(SQLModel, table=True):
@@ -35,10 +38,14 @@ class Proxy(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     ip: str = Field(index=True)
     port: int
-    protocol: str = Field(default="http", description="Protocol: http, https, or socks5")
+    protocol: str = Field(
+        default="http", description="Protocol: http, https, or socks5"
+    )
     username: Optional[str] = None
     password: Optional[str] = None
-    latency: Optional[float] = Field(default=None, description="Latency in milliseconds")
+    latency: Optional[float] = Field(
+        default=None, description="Latency in milliseconds"
+    )
     last_checked: Optional[datetime] = Field(default=None)
     is_working: bool = Field(default=False, index=True)
     fail_count: int = Field(default=0)
@@ -58,15 +65,15 @@ class Proxy(SQLModel, table=True):
             password = self.password.strip() if isinstance(self.password, str) else ""
             if username and password:
                 auth_part = f"{username}:{password}@"
-        
+
         protocol = self.protocol.lower() if self.protocol else "http"
         return f"{protocol}://{auth_part}{self.ip}:{self.port}"
-    
+
     def calculate_health_score(self) -> float:
         """
         Calculate health score based on multiple factors.
         Score ranges from 0.0 (worst) to 100.0 (best).
-        
+
         Factors considered:
         - Working status (40 points)
         - Latency (30 points) - lower is better
@@ -74,13 +81,13 @@ class Proxy(SQLModel, table=True):
         - Recency of health check (10 points) - more recent is better
         """
         score = 0.0
-        
+
         # Factor 1: Working status (40 points)
         if self.is_working:
             score += 40.0
         else:
             return 0.0  # If not working, health score is 0
-        
+
         # Factor 2: Latency (30 points)
         # Lower latency = higher score
         # Ideal: < 100ms = 30 points
@@ -98,7 +105,7 @@ class Proxy(SQLModel, table=True):
                 score += 5.0
         else:
             score += 15.0  # No latency data = medium score
-        
+
         # Factor 3: Failure count (20 points)
         # No failures = 20 points
         # 1-2 failures = 15 points
@@ -112,7 +119,7 @@ class Proxy(SQLModel, table=True):
             score += 10.0
         else:
             score += 5.0
-        
+
         # Factor 4: Recency of health check (10 points)
         # Checked within last hour = 10 points
         # Checked within last day = 7 points
@@ -131,13 +138,13 @@ class Proxy(SQLModel, table=True):
                 score += 2.0
         else:
             score += 1.0  # Never checked = very low score
-        
+
         return min(score, 100.0)  # Cap at 100
 
 
 class ActivityLog(SQLModel, table=True):
     """Activity log database model."""
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", index=True)
     endpoint: str
@@ -146,20 +153,20 @@ class ActivityLog(SQLModel, table=True):
     status_code: int
     target_url: Optional[str] = None
     ip_address: Optional[str] = None
-    
+
     # Relationships
     user: User = Relationship(back_populates="activity_logs")
 
 
 class Blacklist(SQLModel, table=True):
     """Blacklist regex pattern model."""
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
     pattern: str = Field(description="Regex pattern to match against URLs")
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     created_by: int = Field(foreign_key="user.id")
-    
+
     # Relationships
     created_by_user: User = Relationship(back_populates="created_blacklists")
 
@@ -169,7 +176,9 @@ class ProxyCreate(BaseModel):
 
     ip: str
     port: int
-    protocol: str = Field(default="http", description="Protocol: http, https, or socks5")
+    protocol: str = Field(
+        default="http", description="Protocol: http, https, or socks5"
+    )
     username: Optional[str] = None
     password: Optional[str] = None
 
@@ -180,7 +189,7 @@ class ProxyCreate(BaseModel):
                 "port": 8080,
                 "protocol": "http",
                 "username": "user",
-                "password": "pass"
+                "password": "pass",
             }
         }
     )
@@ -228,17 +237,17 @@ class ProxyTestResult(BaseModel):
 # User schemas
 class UserCreate(BaseModel):
     """Schema for creating a new user."""
-    
+
     username: str
     email: EmailStr
     password: str
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "username": "johndoe",
                 "email": "john@example.com",
-                "password": "securepassword123"
+                "password": "securepassword123",
             }
         }
     )
@@ -246,27 +255,27 @@ class UserCreate(BaseModel):
 
 class UserResponse(BaseModel):
     """Schema for user response."""
-    
+
     id: int
     username: str
     email: EmailStr
     role: UserRole
     is_active: bool
     created_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserLogin(BaseModel):
     """Schema for user login."""
-    
+
     username: str
     password: str
 
 
 class Token(BaseModel):
     """Schema for JWT token response."""
-    
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
@@ -274,7 +283,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     """Schema for token data."""
-    
+
     username: Optional[str] = None
     user_id: Optional[int] = None
 
@@ -282,7 +291,7 @@ class TokenData(BaseModel):
 # Activity log schemas
 class ActivityLogResponse(BaseModel):
     """Schema for activity log response."""
-    
+
     id: int
     user_id: int
     endpoint: str
@@ -291,13 +300,13 @@ class ActivityLogResponse(BaseModel):
     status_code: int
     target_url: Optional[str] = None
     ip_address: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class ActivityLogFilter(BaseModel):
     """Schema for filtering activity logs."""
-    
+
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     endpoint: Optional[str] = None
@@ -310,15 +319,15 @@ class ActivityLogFilter(BaseModel):
 # Blacklist schemas
 class BlacklistCreate(BaseModel):
     """Schema for creating a blacklist rule."""
-    
+
     pattern: str = Field(description="Regex pattern to match against URLs")
     description: Optional[str] = None
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "pattern": ".*\\.example\\.com.*",
-                "description": "Block all example.com domains"
+                "description": "Block all example.com domains",
             }
         }
     )
@@ -326,12 +335,11 @@ class BlacklistCreate(BaseModel):
 
 class BlacklistResponse(BaseModel):
     """Schema for blacklist response."""
-    
+
     id: int
     pattern: str
     description: Optional[str] = None
     created_at: datetime
     created_by: int
-    
-    model_config = ConfigDict(from_attributes=True)
 
+    model_config = ConfigDict(from_attributes=True)
