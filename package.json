@@ -1,0 +1,28 @@
+{
+  "name": "proxy-manager-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proxy Manager - Frontend and Shared Packages",
+  "workspaces": [
+    "packages/*",
+    "client/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=client/app",
+    "build": "npm run build --workspace=packages/api && npm run build --workspace=packages/ui && npm run build --workspace=client/app",
+    "test": "npm run test --workspaces --if-present",
+    "test:unit": "npm run test:unit --workspace=client/app",
+    "test:e2e": "npm run test:e2e --workspace=client/app",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "type-check": "npm run type-check --workspaces --if-present"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@proxy-manager/api",
+  "version": "1.0.0",
+  "description": "API client for Proxy Manager",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "require": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "generate": "openapi-typescript openapi.json -o src/types.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "axios": "^1.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "openapi-typescript": "^6.7.4",
+    "typescript": "^5.3.3"
+  }
+}
+

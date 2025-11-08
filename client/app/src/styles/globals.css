@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme is imported in main.tsx, so we don't need to import it here again */
+
+/* Additional global styles */
+body {
+  @apply bg-bg text-neon-cyan;
+}
+
+/* Link styles */
+a {
+  @apply text-neon-cyan hover:text-accent transition-colors;
+}
+
+/* Card/panel styles */
+.card {
+  @apply bg-panel border border-neon-cyan rounded-lg p-4;
+}
+
+/* Loading spinner */
+.spinner {
+  @apply inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent;
+}
+
