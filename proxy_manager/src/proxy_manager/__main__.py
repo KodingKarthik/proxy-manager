@@ -2,17 +2,25 @@
 
 import logging
 from contextlib import asynccontextmanager
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import create_db_and_tables
-from .routers import proxy_routes, health_routes, auth_routes, admin_routes, blacklist_routes, log_routes
+from .routers import (
+    admin_routes,
+    auth_routes,
+    blacklist_routes,
+    health_routes,
+    log_routes,
+    proxy_routes,
+)
 from .scheduler import health_check_scheduler
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -21,7 +29,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """
     Lifespan context manager for startup and shutdown events.
-    
+
     - Startup: Initialize database tables and start health check scheduler
     - Shutdown: Stop health check scheduler
     """
@@ -29,12 +37,12 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Proxy Manager application")
     create_db_and_tables()
     logger.info("Database tables initialized")
-    
+
     health_check_scheduler.start()
     logger.info("Application startup complete")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Proxy Manager application")
     health_check_scheduler.stop(wait=True)
@@ -46,7 +54,7 @@ app = FastAPI(
     title="Multi-Threaded Rotating Proxy Manager",
     description="A production-ready FastAPI application for managing and rotating HTTP/HTTPS proxies",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Configure OpenAPI schema for better Swagger UI support
@@ -115,6 +123,9 @@ def root():
     return {
         "message": "Multi-Threaded Rotating Proxy Manager API",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/health",
     }
 
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

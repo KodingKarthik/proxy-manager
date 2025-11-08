@@ -284,7 +284,9 @@ if __name__ == "__main__":
     asyncio.set_event_loop(loop)
 
     opts = Options(listen_port=settings.mitm_listen_port)
-    mitmproxy_master = DumpMaster(opts, loop=loop)
+    mitmproxy_master = DumpMaster(
+        opts, loop=loop, with_termlog=False, with_dumper=False
+    )
 
     # Add the firewall addon
     forwarder_addon = ForwarderAddon()
