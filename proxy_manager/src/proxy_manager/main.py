@@ -49,6 +49,46 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Configure OpenAPI schema for better Swagger UI support
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    from fastapi.openapi.utils import get_openapi
+    
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    
+    # Add security scheme for HTTP Bearer (primary method)
+    openapi_schema["components"]["securitySchemes"] = {
+        "HTTPBearer": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Enter your JWT token. Get it from POST /auth/login endpoint. Just paste the token (without 'Bearer ' prefix)."
+        }
+    }
+    
+    # Update all endpoints that require authentication to use HTTPBearer
+    # This makes Swagger UI show a simple "Value" field for token entry
+    for path, path_item in openapi_schema.get("paths", {}).items():
+        for method, operation in path_item.items():
+            if isinstance(operation, dict) and "security" in operation:
+                # Replace OAuth2PasswordBearer with HTTPBearer
+                security = operation["security"]
+                for sec in security:
+                    if "OAuth2PasswordBearer" in sec:
+                        sec["HTTPBearer"] = sec.pop("OAuth2PasswordBearer")
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,

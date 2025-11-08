@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlmodel import Session
@@ -15,8 +15,11 @@ from .utils.config import settings
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+# HTTP Bearer scheme for Swagger UI (simpler, shows "Value" field)
+http_bearer = HTTPBearer(auto_error=False)
+
+# OAuth2 scheme for OAuth2 flow (kept for compatibility)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -77,8 +80,32 @@ def verify_token(token: str, token_type: str = "access") -> TokenData:
         raise credentials_exception
 
 
+async def get_token_from_request(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer),
+    oauth2_token: Optional[str] = Depends(oauth2_scheme)
+) -> str:
+    """
+    Get token from either HTTP Bearer or OAuth2 scheme.
+    This allows Swagger UI to work with both methods.
+    """
+    # Try HTTP Bearer first (works better with Swagger UI)
+    if credentials:
+        return credentials.credentials
+    
+    # Fall back to OAuth2 token
+    if oauth2_token:
+        return oauth2_token
+    
+    # No token found
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    token: str = Depends(get_token_from_request),
     session: Session = Depends(get_session)
 ) -> User:
     """Get the current authenticated user."""

@@ -4,6 +4,9 @@ from sqlmodel import SQLModel, create_engine, Session
 from typing import Generator
 from .utils.config import settings
 
+# Import all models to ensure they're registered with SQLModel
+from .models import User, Proxy, ActivityLog, Blacklist  # noqa: F401
+
 # Create database engine
 engine = create_engine(
     settings.db_url,
