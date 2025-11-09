@@ -2,6 +2,7 @@
 
 from pydantic_settings import BaseSettings
 from pydantic import Field
+from typing import Literal
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -46,6 +47,18 @@ class Settings(BaseSettings):
     default_user_jwt: str | None = Field(
         default=None,
         description="Default user JWT to use if client doesn't provide Authorization header",
+    )
+    rotation_strategy: Literal["random", "round_robin", "lru", "best", "health_score"] = Field(
+        default="best",
+        description="Rotation strategy for proxy selection: random, round_robin, lru, best (lowest latency), health_score (best health)",
+    )
+    retry_count: int = Field(
+        default=1,
+        description="Number of retries with the same strategy on connection errors",
+    )
+    fallback_strategy: Literal["random", "round_robin", "lru", "best", "health_score"] = Field(
+        default="health_score",
+        description="Fallback rotation strategy to use after all retries fail",
     )
 
     class Config:

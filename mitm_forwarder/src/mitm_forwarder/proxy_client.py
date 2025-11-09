@@ -14,6 +14,7 @@ async def get_proxy(
     client: httpx.AsyncClient,
     target_url: str | None = None,
     user_jwt: str | None = None,
+    strategy: str | None = None,
 ) -> dict[str, str | None] | None:
     """
     Get an upstream proxy from FastAPI backend.
@@ -22,6 +23,7 @@ async def get_proxy(
         client: httpx async client
         target_url: Optional target URL for blacklist checking
         user_jwt: User JWT token from client Authorization header (required)
+        strategy: Optional rotation strategy (random, round_robin, lru, best, health_score)
 
     Returns:
         Dict with proxy info: {"proxy": str, "proxy_id": int, "user_id": int}
@@ -39,6 +41,8 @@ async def get_proxy(
     params = {}
     if target_url:
         params["target_url"] = target_url
+    if strategy:
+        params["strategy"] = strategy
 
     try:
         response = await client.get(
