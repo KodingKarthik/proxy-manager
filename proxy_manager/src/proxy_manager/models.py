@@ -23,7 +23,7 @@ class User(SQLModel, table=True):
     hashed_password: str
     role: UserRole = Field(default=UserRole.USER)
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now)
 
     # Relationships
     activity_logs: List["ActivityLog"] = Relationship(back_populates="user")
@@ -126,7 +126,7 @@ class Proxy(SQLModel, table=True):
         # Checked within last week = 5 points
         # Older = 2 points
         if self.last_checked:
-            time_since_check = (datetime.utcnow() - self.last_checked).total_seconds()
+            time_since_check = (datetime.now() - self.last_checked).total_seconds()
             hours = time_since_check / 3600
             if hours < 1:
                 score += 10.0
@@ -149,7 +149,7 @@ class ActivityLog(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id", index=True)
     endpoint: str
     method: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow, index=True)
+    timestamp: datetime = Field(default_factory=datetime.now, index=True)
     status_code: int
     target_url: Optional[str] = None
     ip_address: Optional[str] = None
@@ -164,7 +164,7 @@ class Blacklist(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     pattern: str = Field(description="Regex pattern to match against URLs")
     description: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now)
     created_by: int = Field(foreign_key="user.id")
 
     # Relationships
