@@ -55,7 +55,7 @@ const Register = () => {
 
         {error && (
           <div
-            className="mb-4 p-3 bg-neon-magenta bg-opacity-20 border border-neon-magenta rounded-lg text-neon-magenta text-sm"
+            className="mb-4 p-3 bg-neon-magenta bg-opacity-20 border border-neon-magenta rounded-lg text-white text-sm"
             role="alert"
           >
             {error}
