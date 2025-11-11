@@ -24,9 +24,9 @@ class Settings(BaseSettings):
     fastapi_activity_endpoint: str = Field(
         default="/activity", description="FastAPI activity logging endpoint"
     )
-    # TODO: CHANGE THIS!
     system_token: str = Field(
-        default="", description="System token for FastAPI authentication (required)"
+        default="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOjEsImV4cCI6MTc2MjY4NzM5MCwidHlwZSI6ImFjY2VzcyJ9.hqiId44Ci6lIz0scolFk7P8QVpMICbe79oEysG_SYA8",
+        description="System token for FastAPI authentication (required)",
     )
     blacklist_refresh_seconds: int = Field(
         default=60, description="Blacklist cache refresh interval in seconds"
@@ -44,11 +44,13 @@ class Settings(BaseSettings):
         default=True,
         description="Require user JWT in Authorization header (reject if missing)",
     )
-    default_user_jwt: str | None = Field(
-        default=None,
+    default_user_jwt: str = Field(
+        default="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOjEsImV4cCI6MTc2MjY4NzM5MCwidHlwZSI6ImFjY2VzcyJ9.hqiId44Ci6lIz0scolFk7P8QVpMICbe79oEysG_SYA8",
         description="Default user JWT to use if client doesn't provide Authorization header",
     )
-    rotation_strategy: Literal["random", "round_robin", "lru", "best", "health_score"] = Field(
+    rotation_strategy: Literal[
+        "random", "round_robin", "lru", "best", "health_score"
+    ] = Field(
         default="best",
         description="Rotation strategy for proxy selection: random, round_robin, lru, best (lowest latency), health_score (best health)",
     )
@@ -56,7 +58,9 @@ class Settings(BaseSettings):
         default=1,
         description="Number of retries with the same strategy on connection errors",
     )
-    fallback_strategy: Literal["random", "round_robin", "lru", "best", "health_score"] = Field(
+    fallback_strategy: Literal[
+        "random", "round_robin", "lru", "best", "health_score"
+    ] = Field(
         default="health_score",
         description="Fallback rotation strategy to use after all retries fail",
     )
