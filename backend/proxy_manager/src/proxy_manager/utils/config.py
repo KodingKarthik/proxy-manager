@@ -1,7 +1,7 @@
 """Configuration management using Pydantic BaseSettings."""
 
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, ConfigDict
 from typing import Literal
 from dotenv import load_dotenv
 import secrets
@@ -81,10 +81,11 @@ class Settings(BaseSettings):
         description="System token for internal service authentication (mitm_forwarder)"
     )
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False
+    )
 
 
 # Global settings instance

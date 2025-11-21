@@ -1,7 +1,7 @@
 """Configuration management using Pydantic BaseSettings."""
 
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, ConfigDict
 from typing import Literal
 from dotenv import load_dotenv
 
@@ -11,6 +11,12 @@ _ = load_dotenv()
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
+
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False
+    )
 
     fastapi_base_url: str = Field(
         default="http://127.0.0.1:8000", description="FastAPI backend base URL"
@@ -24,9 +30,9 @@ class Settings(BaseSettings):
     fastapi_activity_endpoint: str = Field(
         default="/activity", description="FastAPI activity logging endpoint"
     )
-    system_token: str = Field(
-        default="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOjEsImV4cCI6MTc2MjY4NzM5MCwidHlwZSI6ImFjY2VzcyJ9.hqiId44Ci6lIz0scolFk7P8QVpMICbe79oEysG_SYA8",
-        description="System token for FastAPI authentication (required)",
+    system_api_key: str = Field(
+        default="mitm-forwarder.secret123",
+        description="System API Key for FastAPI authentication (required)",
     )
     blacklist_refresh_seconds: int = Field(
         default=60, description="Blacklist cache refresh interval in seconds"
@@ -64,11 +70,6 @@ class Settings(BaseSettings):
         default="health_score",
         description="Fallback rotation strategy to use after all retries fail",
     )
-
-    class Config:
-        env_file: str = ".env"
-        env_file_encoding: str = "utf-8"
-        case_sensitive: bool = False
 
 
 # Global settings instance

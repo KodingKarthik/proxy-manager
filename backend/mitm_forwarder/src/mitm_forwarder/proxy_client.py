@@ -106,7 +106,8 @@ async def fetch_blacklist(client: httpx.AsyncClient) -> list[dict[str, Any]]:
         Returns empty list on error
     """
     url = f"{settings.fastapi_base_url}{settings.fastapi_blacklist_endpoint}"
-    headers = {"Authorization": f"Bearer {settings.system_token}"}
+    url = f"{settings.fastapi_base_url}{settings.fastapi_blacklist_endpoint}"
+    headers = {"X-API-Key": settings.system_api_key}
 
     try:
         response = await client.get(
@@ -155,7 +156,7 @@ async def post_activity(
     """
     url = f"{settings.fastapi_base_url}{settings.fastapi_activity_endpoint}"
     headers = {
-        "Authorization": f"Bearer {settings.system_token}",
+        "X-API-Key": settings.system_api_key,
         "Content-Type": "application/json",
     }
 

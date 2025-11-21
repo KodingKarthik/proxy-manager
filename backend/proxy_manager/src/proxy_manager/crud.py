@@ -294,3 +294,83 @@ def delete_blacklist_rule(session: Session, rule_id: int) -> bool:
         session.commit()
         return True
     return False
+
+
+# API Key CRUD operations
+def create_api_key(
+    session: Session, user_id: int, name: str, expires_at: Optional[datetime] = None
+) -> tuple["ApiKey", str]:
+    """
+    Create a new API key for a user.
+    Returns (ApiKey, raw_key_string)
+    
+    The raw key is only returned once and should be saved by the caller.
+    """
+    import secrets
+    from .models import ApiKey
+    
+    # Generate a secure random key (32 bytes = 43 chars in base64)
+    raw_key = secrets.token_urlsafe(32)
+    prefix = raw_key[:8]
+    key_hash = get_password_hash(raw_key)
+
+    api_key = ApiKey(
+        key_hash=key_hash,
+        prefix=prefix,
+        name=name,
+        user_id=user_id,
+        expires_at=expires_at,
+    )
+    session.add(api_key)
+    session.commit()
+    session.refresh(api_key)
+
+    return api_key, raw_key
+
+
+def get_user_api_keys(session: Session, user_id: int) -> List["ApiKey"]:
+    """Get all API keys for a user."""
+    from .models import ApiKey
+    
+    statement = select(ApiKey).where(ApiKey.user_id == user_id).order_by(
+        ApiKey.created_at.desc()
+    )
+    return list(session.exec(statement).all())
+
+
+def get_api_key_by_id(session: Session, key_id: int) -> Optional["ApiKey"]:
+    """Get an API key by ID."""
+    from .models import ApiKey
+    return session.get(ApiKey, key_id)
+
+
+def revoke_api_key(session: Session, key_id: int, user_id: int) -> bool:
+    """
+    Revoke/delete an API key (only if owned by user).
+    Returns True if successfully deleted, False otherwise.
+    """
+    from .models import ApiKey
+    
+    api_key = session.get(ApiKey, key_id)
+    if api_key and api_key.user_id == user_id:
+        session.delete(api_key)
+        session.commit()
+        return True
+    return False
+
+
+def deactivate_api_key(session: Session, key_id: int, user_id: int) -> Optional["ApiKey"]:
+    """
+    Deactivate an API key (soft delete - only if owned by user).
+    Returns the updated ApiKey if successful, None otherwise.
+    """
+    from .models import ApiKey
+    
+    api_key = session.get(ApiKey, key_id)
+    if api_key and api_key.user_id == user_id:
+        api_key.is_active = False
+        session.add(api_key)
+        session.commit()
+        session.refresh(api_key)
+        return api_key
+    return None

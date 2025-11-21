@@ -6,7 +6,7 @@ from typing import List
 
 from ..database import get_session
 from ..models import User, BlacklistCreate, BlacklistResponse
-from ..auth import get_current_user
+from ..auth import get_current_user, get_current_user_or_service
 from ..crud import (
     create_blacklist_rule, get_all_blacklist_rules,
     delete_blacklist_rule, get_blacklist_rule
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/blacklist", tags=["blacklist"])
 
 @router.get("", response_model=List[BlacklistResponse])
 def list_blacklist_rules(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_or_service),
     session: Session = Depends(get_session)
 ):
     """

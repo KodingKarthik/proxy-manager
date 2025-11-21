@@ -12,6 +12,7 @@ class UserRole(str, Enum):
 
     ADMIN = "admin"
     USER = "user"
+    SERVICE = "service"
 
 
 class User(SQLModel, table=True):
@@ -169,6 +170,22 @@ class Blacklist(SQLModel, table=True):
 
     # Relationships
     created_by_user: User = Relationship(back_populates="created_blacklists")
+
+
+class ApiKey(SQLModel, table=True):
+    """API Key model for service authentication."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    key_hash: str = Field(index=True)
+    prefix: str = Field(index=True, description="First 8 characters of the key")
+    name: str = Field(description="Friendly name for the key")
+    user_id: int = Field(foreign_key="user.id")
+    created_at: datetime = Field(default_factory=datetime.now)
+    expires_at: Optional[datetime] = None
+    is_active: bool = Field(default=True)
+
+    # Relationships
+    user: User = Relationship()
 
 
 class ProxyCreate(BaseModel):
@@ -342,4 +359,46 @@ class BlacklistResponse(BaseModel):
     created_at: datetime
     created_by: int
 
+
     model_config = ConfigDict(from_attributes=True)
+
+
+# API Key schemas
+class ApiKeyCreate(BaseModel):
+    """Schema for creating an API key."""
+
+    name: str = Field(description="Friendly name for the API key")
+    expires_at: Optional[datetime] = Field(
+        default=None, description="Optional expiration date for the key"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "name": "Production Service",
+                "expires_at": "2025-12-31T23:59:59",
+            }
+        }
+    )
+
+
+class ApiKeyResponse(BaseModel):
+    """Schema for API key response (never includes the actual key)."""
+
+    id: int
+    prefix: str
+    name: str
+    created_at: datetime
+    expires_at: Optional[datetime] = None
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ApiKeyCreateResponse(BaseModel):
+    """Response when creating a new API key (includes the raw key once)."""
+
+    api_key: ApiKeyResponse
+    raw_key: str = Field(
+        description="The full API key - save this! It will only be shown once."
+    )

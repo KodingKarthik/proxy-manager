@@ -9,7 +9,7 @@ import secrets
 
 from ..database import get_session
 from ..models import User, ActivityLogResponse, ActivityLogFilter
-from ..auth import get_current_user
+from ..auth import get_current_user, get_current_user_or_service
 from ..crud import get_user_logs, create_activity_log
 from ..utils.csv_exporter import export_logs_to_csv
 from ..utils.config import settings
@@ -140,36 +140,24 @@ class ActivityLogCreate(BaseModel):
 @activity_router.post("", status_code=201)
 def create_activity(
     activity_data: ActivityLogCreate,
-    authorization: str = Header(..., alias="Authorization"),
+    current_user: User = Depends(get_current_user_or_service),
     session: Session = Depends(get_session)
 ):
     """
     Create an activity log entry (called by mitm_forwarder).
     
     This endpoint accepts activity logs from the mitm_forwarder service.
-    Authentication is done via system token in Authorization header.
+    Authentication is done via API Key or Bearer token.
     
     Args:
         activity_data: Activity log data
-        authorization: Authorization header with Bearer token
+        current_user: Authenticated user (service or human)
         session: Database session
         
     Returns:
         Success message
     """
-    # Verify system token
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authorization header format"
-        )
-    
-    token = authorization.replace("Bearer ", "").strip()
-    if token != settings.system_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid system token"
-        )
+    # No manual token check needed anymore
     
     # Handle user_id - if None, we might need to create a system user or skip
     # For now, we'll require user_id to be provided or use a default system user

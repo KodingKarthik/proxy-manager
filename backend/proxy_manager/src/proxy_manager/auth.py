@@ -13,8 +13,10 @@ from passlib.context import CryptContext
 from sqlmodel import Session
 
 from .database import get_session
-from .models import User, TokenData, UserRole
+from .database import get_session
+from .models import User, TokenData, UserRole, ApiKey
 from .utils.config import settings
+from fastapi.security import APIKeyHeader
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -23,7 +25,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 http_bearer = HTTPBearer(auto_error=False)
 
 # OAuth2 scheme for OAuth2 flow (kept for compatibility)
+# OAuth2 scheme for OAuth2 flow (kept for compatibility)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+
+# API Key scheme
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -116,6 +122,21 @@ async def get_token_from_request(
     )
 
 
+async def get_token_from_request_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer),
+    oauth2_token: Optional[str] = Depends(oauth2_scheme),
+) -> Optional[str]:
+    """
+    Get token from either HTTP Bearer or OAuth2 scheme (optional).
+    Returns None if no token found.
+    """
+    if credentials:
+        return credentials.credentials
+    if oauth2_token:
+        return oauth2_token
+    return None
+
+
 async def get_current_user(
     token: str = Depends(get_token_from_request),
     session: Session = Depends(get_session),
@@ -142,6 +163,27 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_optional(
+    token: Optional[str] = Depends(get_token_from_request_optional),
+    session: Session = Depends(get_session),
+) -> Optional[User]:
+    """Get the current authenticated user (optional)."""
+    if not token:
+        return None
+
+    try:
+        token_data = verify_token(token, "access")
+        from .crud import get_user_by_username
+
+        user = get_user_by_username(session, username=token_data.username)
+        if user and user.is_active:
+            return user
+    except HTTPException:
+        pass
+    
+    return None
+
+
 async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
     """Get the current user and verify they are an admin."""
     if current_user.role != UserRole.ADMIN:
@@ -149,3 +191,62 @@ async def get_current_admin(current_user: User = Depends(get_current_user)) -> U
             status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
         )
     return current_user
+
+
+async def get_api_key_user(
+    api_key: str = Depends(api_key_header),
+    session: Session = Depends(get_session),
+) -> Optional[User]:
+    """
+    Authenticate a service user via API Key.
+    Returns the User associated with the API key if valid.
+    """
+    if not api_key:
+        return None
+
+    # API key format: prefix.secret
+    try:
+        prefix, _ = api_key.split(".", 1)
+    except ValueError:
+        return None  # Invalid format
+
+    # Find key by prefix
+    from sqlmodel import select
+
+    statement = select(ApiKey).where(ApiKey.prefix == prefix, ApiKey.is_active == True)
+    db_api_keys = session.exec(statement).all()
+
+    if not db_api_keys:
+        return None
+
+    # Verify hash against all candidate keys
+    for db_api_key in db_api_keys:
+        if verify_password(api_key, db_api_key.key_hash):
+            # Check expiration
+            if db_api_key.expires_at and db_api_key.expires_at < datetime.now():
+                continue
+            return db_api_key.user
+
+    return None
+
+
+async def get_current_user_or_service(
+    token_user: Optional[User] = Depends(get_current_user_optional),
+    api_key_user: Optional[User] = Depends(get_api_key_user),
+) -> User:
+    """
+    Get the current authenticated user (human or service).
+    Prioritizes token auth (human), falls back to API key (service).
+    """
+    if token_user:
+        return token_user
+    
+    if api_key_user:
+        return api_key_user
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+        headers={"WWW-Authenticate": "Bearer, ApiKey"},
+    )
+

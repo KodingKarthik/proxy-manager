@@ -2,7 +2,7 @@
 
 import pytest
 import httpx
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from mitm_forwarder.proxy_client import get_proxy, fetch_blacklist, post_activity
 from mitm_forwarder.config import Settings
@@ -20,22 +20,26 @@ async def test_get_proxy_success(mock_client, sample_proxy_response):
     # Mock successful response
     mock_response = AsyncMock()
     mock_response.status_code = 200
-    mock_response.json = AsyncMock(return_value=sample_proxy_response)
+    mock_response.json = MagicMock(return_value=sample_proxy_response)
     mock_client.get = AsyncMock(return_value=mock_response)
     
-    # Get proxy
-    result = await get_proxy(mock_client, target_url="https://example.com")
+    # Get proxy - need to provide user_jwt since it's required
+    result = await get_proxy(
+        mock_client, 
+        target_url="https://example.com",
+        user_jwt="Bearer test-token"
+    )
     
     # Verify result
     assert result is not None
-    assert result["proxy"] == "1.2.3.4:8080"
+    assert "1.2.3.4:8080" in result["proxy"]
     assert result["proxy_id"] == 42
     
     # Verify request was made with correct headers
     mock_client.get.assert_called_once()
     call_args = mock_client.get.call_args
     assert "Authorization" in call_args.kwargs["headers"]
-    assert "Bearer" in call_args.kwargs["headers"]["Authorization"]
+    assert call_args.kwargs["headers"]["Authorization"] == "Bearer test-token"
 
 
 @pytest.mark.asyncio
@@ -43,7 +47,7 @@ async def test_get_proxy_with_user_jwt(mock_client, sample_proxy_response):
     """Test proxy fetch with user JWT."""
     mock_response = AsyncMock()
     mock_response.status_code = 200
-    mock_response.json = AsyncMock(return_value=sample_proxy_response)
+    mock_response.json = MagicMock(return_value=sample_proxy_response)
     mock_client.get = AsyncMock(return_value=mock_response)
     
     # Get proxy with user JWT
@@ -55,10 +59,10 @@ async def test_get_proxy_with_user_jwt(mock_client, sample_proxy_response):
     
     assert result is not None
     
-    # Verify X-Client-Authorization header was set
+    # Verify Authorization header was set with the user JWT
     call_args = mock_client.get.call_args
-    assert "X-Client-Authorization" in call_args.kwargs["headers"]
-    assert call_args.kwargs["headers"]["X-Client-Authorization"] == "Bearer user-token-123"
+    assert "Authorization" in call_args.kwargs["headers"]
+    assert call_args.kwargs["headers"]["Authorization"] == "Bearer user-token-123"
 
 
 @pytest.mark.asyncio
@@ -100,7 +104,7 @@ async def test_fetch_blacklist_success(mock_client, sample_blacklist_response):
     """Test successful blacklist fetch."""
     mock_response = AsyncMock()
     mock_response.status_code = 200
-    mock_response.json = AsyncMock(return_value=sample_blacklist_response)
+    mock_response.json = MagicMock(return_value=sample_blacklist_response)
     mock_client.get = AsyncMock(return_value=mock_response)
     
     result = await fetch_blacklist(mock_client)

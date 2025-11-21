@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import create_db_and_tables
 from .routers import (
     admin_routes,
+    api_key_routes,
     auth_routes,
     blacklist_routes,
     health_routes,
@@ -108,6 +109,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_routes.router)
+app.include_router(api_key_routes.router)
 app.include_router(proxy_routes.proxies_router)
 app.include_router(proxy_routes.proxy_router)
 app.include_router(health_routes.router)

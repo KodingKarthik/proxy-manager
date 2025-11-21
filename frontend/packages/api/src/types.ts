@@ -2,7 +2,7 @@
 // Run: npm run generate
 // For now, we'll define basic types manually
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'user' | 'service';
 
 export interface UserCreate {
   username: string;
@@ -119,5 +119,25 @@ export interface ValidationError {
   loc: (string | number)[];
   msg: string;
   type: string;
+}
+
+// API Key types
+export interface ApiKeyCreate {
+  name: string;
+  expires_at?: string | null;
+}
+
+export interface ApiKeyResponse {
+  id: number;
+  prefix: string;
+  name: string;
+  created_at: string;
+  expires_at?: string | null;
+  is_active: boolean;
+}
+
+export interface ApiKeyCreateResponse {
+  api_key: ApiKeyResponse;
+  raw_key: string;
 }
 

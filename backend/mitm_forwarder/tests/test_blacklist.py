@@ -3,7 +3,7 @@
 import pytest
 import asyncio
 import time
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
 from mitm_forwarder.blacklist_cache import BlacklistCache
@@ -28,7 +28,7 @@ async def test_blacklist_cache_refresh(blacklist_cache, mock_client, sample_blac
     # Mock fetch_blacklist response
     mock_response = AsyncMock()
     mock_response.status_code = 200
-    mock_response.json = AsyncMock(return_value=sample_blacklist_response)
+    mock_response.json = MagicMock(return_value=sample_blacklist_response)
     mock_client.get = AsyncMock(return_value=mock_response)
     
     # Refresh cache

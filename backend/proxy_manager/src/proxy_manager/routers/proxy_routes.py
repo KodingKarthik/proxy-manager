@@ -16,7 +16,7 @@ from ..crud import (
 from ..utils.rotation import rotation_manager
 from ..utils.proxy_tester import ProxyTester
 from ..utils.config import settings
-from ..auth import get_current_user
+from ..auth import get_current_user, get_current_user_or_service
 from ..utils.logger import log_activity, get_client_ip
 from ..utils.blacklist import blacklist_checker
 from ..routers.rate_limit import check_rate_limit
@@ -246,7 +246,7 @@ def get_proxy_by_strategy(
     target_url: Optional[str] = Query(
         None, description="Target URL to check against blacklist"
     ),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_or_service),
     session: Session = Depends(get_session),
 ):
     """
@@ -319,7 +319,7 @@ def get_next_proxy(
     target_url: Optional[str] = Query(
         None, description="Target URL to check against blacklist"
     ),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_or_service),
     session: Session = Depends(get_session),
 ):
     """
@@ -388,7 +388,7 @@ def get_random_proxy(
     target_url: Optional[str] = Query(
         None, description="Target URL to check against blacklist"
     ),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_or_service),
     session: Session = Depends(get_session),
 ):
     """

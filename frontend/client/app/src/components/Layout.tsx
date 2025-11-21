@@ -40,6 +40,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 >
                   Logs
                 </Link>
+                <Link
+                  to="/app/api-keys"
+                  className="border-transparent text-neon-cyan hover:border-accent hover:text-accent inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                >
+                  API Keys
+                </Link>
                 {isAdmin && (
                   <Link
                     to="/admin/dashboard"
